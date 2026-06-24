@@ -1,4 +1,5 @@
 import React from 'react'
+import { ltrIsolate } from '../../types'
 import type { FieldValues } from '../../types'
 
 const GOLD = '#F2C200'
@@ -36,8 +37,8 @@ function Diamond({
 }
 
 /**
- * Builds the single-line footer contact string from the active fields,
- * matching the sample: "C.R: 1610803, P. O: 12, P. C: 111, SULTANATE OF OMAN, TEL:+968 77487290"
+ * Builds the single-line English footer contact string, matching the sample:
+ * "C.R: 1610803, P. O: 12, P. C: 111, SULTANATE OF OMAN, TEL:+968 77487290"
  */
 function footerLine(fields: FieldValues): string {
   const parts: string[] = []
@@ -50,11 +51,50 @@ function footerLine(fields: FieldValues): string {
   return parts.join(', ')
 }
 
+/**
+ * Arabic-side footer string (mirrors the English one). Numbers are wrapped in
+ * LTR isolates so they always read left-to-right inside the RTL line.
+ */
+function arabicFooter(fields: FieldValues): string {
+  const parts: string[] = []
+  if (fields.crAr) parts.push(`س.ت:${ltrIsolate(fields.crAr)}`)
+  if (fields.poBoxAr) parts.push(`ص.ب:${ltrIsolate(fields.poBoxAr)}`)
+  if (fields.postalCodeAr) parts.push(`ر.ب:${ltrIsolate(fields.postalCodeAr)}`)
+  if (fields.addressAr) parts.push(fields.addressAr)
+  if (fields.telAr) parts.push(`هاتف:${ltrIsolate(fields.telAr)}`)
+  if (fields.emailAr) parts.push(ltrIsolate(fields.emailAr))
+  return parts.join('، ')
+}
+
 export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
-  const mode = fields.languageMode ?? 'en'
-  const showAr = mode === 'ar' || mode === 'both'
-  const showEn = mode === 'en' || mode === 'both'
   const footer = footerLine(fields)
+  const footerAr = arabicFooter(fields)
+  const arFirst = (fields.order ?? 'ar') === 'ar'
+
+  const nameAr = fields.companyNameAr ? (
+    <div key="ar" dir="rtl" style={{ fontSize: 22, fontWeight: 700, color: INK, lineHeight: 1.3 }}>
+      {fields.companyNameAr}
+    </div>
+  ) : null
+  const nameEn = fields.companyNameEn ? (
+    <div
+      key="en"
+      style={{ fontSize: 16, fontWeight: 800, color: GOLD, letterSpacing: 0.5, marginTop: 4 }}
+    >
+      {fields.companyNameEn}
+    </div>
+  ) : null
+
+  const footerArEl = footerAr ? (
+    <div key="ar" dir="rtl" style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.5 }}>
+      {footerAr}
+    </div>
+  ) : null
+  const footerEnEl = footer ? (
+    <div key="en" style={{ fontSize: 11.5, fontWeight: 700, color: INK, letterSpacing: 0.2 }}>
+      {footer}
+    </div>
+  ) : null
 
   return (
     <div
@@ -69,6 +109,26 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
         color: INK
       }}
     >
+      {/* ---------- WATERMARK (centre, faint, behind everything) ---------- */}
+      {fields.watermark && (
+        <img
+          src={fields.watermark}
+          alt="watermark"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            maxWidth: 460,
+            maxHeight: 560,
+            objectFit: 'contain',
+            opacity: 0.1,
+            zIndex: 0,
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+
       {/* ---------- TOP DECORATIONS ---------- */}
       <div style={{ position: 'absolute', top: 22, left: 0, width: 600, height: 7, background: GREY }} />
       <div style={{ position: 'absolute', top: 31, left: 0, width: 600, height: 15, background: GOLD }} />
@@ -78,44 +138,27 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
       <Diamond size={52} color={GREY} top={48} left={648} shadow />
       <Diamond size={30} color={GOLD} top={70} left={712} />
 
-      {/* Logo (top-left) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 52,
-          left: 36,
-          width: 120,
-          height: 86,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        {fields.logo ? (
+      {/* Logo (top-left) — only rendered when an image is provided */}
+      {fields.logo && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 52,
+            left: 36,
+            width: 120,
+            height: 86,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
           <img
             src={fields.logo}
             alt="logo"
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           />
-        ) : (
-          <div
-            style={{
-              width: 110,
-              height: 70,
-              borderRadius: '50%',
-              border: `2px dashed ${GREY}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 11,
-              color: GREY,
-              letterSpacing: 1
-            }}
-          >
-            LOGO
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Company name block */}
       <div
@@ -127,32 +170,11 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
           textAlign: 'center'
         }}
       >
-        {showAr && fields.companyNameAr && (
-          <div
-            dir="rtl"
-            style={{ fontSize: 22, fontWeight: 700, color: INK, lineHeight: 1.3 }}
-          >
-            {fields.companyNameAr}
-          </div>
-        )}
-        {showEn && fields.companyNameEn && (
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              color: GOLD,
-              letterSpacing: 0.5,
-              marginTop: showAr ? 4 : 18
-            }}
-          >
-            {fields.companyNameEn}
-          </div>
-        )}
+        {arFirst ? [nameAr, nameEn] : [nameEn, nameAr]}
       </div>
 
-      {/* Divider line under the name (with a small notch like the sample) */}
-      <div style={{ position: 'absolute', top: 150, left: 200, width: 250, height: 4, background: INK }} />
-      <div style={{ position: 'absolute', top: 150, left: 470, width: 130, height: 4, background: INK }} />
+      {/* Divider line under the name — a single straight rule */}
+      <div style={{ position: 'absolute', top: 150, left: 200, width: 400, height: 4, background: INK }} />
 
       {/* ---------- FOOTER DECORATIONS ---------- */}
       {/* Bottom-left diamond cluster */}
@@ -174,28 +196,10 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
           textAlign: 'center'
         }}
       >
-        {showAr && (
-          <div dir="rtl" style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.5 }}>
-            {arabicFooter(fields)}
-          </div>
-        )}
-        {showEn && footer && (
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, letterSpacing: 0.2 }}>{footer}</div>
-        )}
+        {arFirst ? [footerArEl, footerEnEl] : [footerEnEl, footerArEl]}
       </div>
     </div>
   )
-}
-
-/** Arabic-side footer string (mirrors the English one) for ar/both modes. */
-function arabicFooter(fields: FieldValues): string {
-  const parts: string[] = []
-  if (fields.cr) parts.push(`س.ت:${fields.cr}`)
-  if (fields.poBox) parts.push(`ص.ب:${fields.poBox}`)
-  if (fields.postalCode) parts.push(`ر.ب:${fields.postalCode}`)
-  if (fields.address) parts.push('سلطنة عمان')
-  if (fields.tel) parts.push(`هاتف:${fields.tel}`)
-  return parts.join('، ')
 }
 
 export default GoldenIdeaPreview

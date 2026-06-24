@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { DEFAULT_EDITOR_STATE, toFieldValues } from './types'
-import type { EditorState, FieldKey } from './types'
+import { DEFAULT_EDITOR_STATE, toArabicDigits, toFieldValues } from './types'
+import type { ArabicFieldKey, EditorState, FieldKey, LangOrder } from './types'
 import { getTemplate } from './templates/registry'
 import TemplatePicker from './components/TemplatePicker'
 import FieldPanel from './components/FieldPanel'
@@ -26,7 +26,15 @@ function App(): React.JSX.Element {
       .then((saved) => {
         if (active && saved && (saved as { state?: EditorState }).state) {
           const s = saved as { state: EditorState; templateId?: string }
-          setState({ ...DEFAULT_EDITOR_STATE, ...s.state })
+          // Deep-merge so fields added in later versions fall back to defaults
+          // instead of becoming `undefined` (which breaks controlled inputs).
+          setState({
+            ...DEFAULT_EDITOR_STATE,
+            ...s.state,
+            enabled: { ...DEFAULT_EDITOR_STATE.enabled, ...s.state.enabled },
+            arEnabled: { ...DEFAULT_EDITOR_STATE.arEnabled, ...s.state.arEnabled },
+            values: { ...DEFAULT_EDITOR_STATE.values, ...s.state.values }
+          })
           if (s.templateId) setTemplateId(s.templateId)
         }
       })
@@ -50,6 +58,35 @@ function App(): React.JSX.Element {
 
   const handleToggle = (key: FieldKey, enabled: boolean): void =>
     setState((s) => ({ ...s, enabled: { ...s.enabled, [key]: enabled } }))
+
+  // Turning Arabic on for a numeric field seeds its (editable) Arabic box with
+  // the English number converted to Arabic-Indic digits — only if still empty.
+  const NUMERIC_AR: Partial<Record<ArabicFieldKey, [keyof EditorState['values'], keyof EditorState['values']]>> = {
+    cr: ['cr', 'crAr'],
+    poBox: ['poBox', 'poBoxAr'],
+    postalCode: ['postalCode', 'postalCodeAr'],
+    tel: ['tel', 'telAr']
+  }
+
+  const handleArToggle = (key: ArabicFieldKey, enabled: boolean): void =>
+    setState((s) => {
+      const arEnabled = { ...s.arEnabled, [key]: enabled }
+      const seed = NUMERIC_AR[key]
+      if (enabled && seed) {
+        const [enKey, arKey] = seed
+        if (!s.values[arKey] && s.values[enKey]) {
+          return {
+            ...s,
+            arEnabled,
+            values: { ...s.values, [arKey]: toArabicDigits(s.values[enKey]) }
+          }
+        }
+      }
+      return { ...s, arEnabled }
+    })
+
+  const handleLangOrder = (order: LangOrder): void =>
+    setState((s) => ({ ...s, langOrder: order }))
 
   const handleValue = <K extends keyof EditorState['values']>(
     key: K,
@@ -79,6 +116,8 @@ function App(): React.JSX.Element {
           state={state}
           supportedFields={template.supportedFields}
           onToggle={handleToggle}
+          onArToggle={handleArToggle}
+          onLangOrder={handleLangOrder}
           onValue={handleValue}
         />
         <PreviewPanel template={template} fields={fields} />

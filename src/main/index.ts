@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
-import { writeFile } from 'fs/promises'
+import { writeFile, unlink } from 'fs/promises'
+import { tmpdir } from 'os'
 import Store from 'electron-store'
 
 const store = new Store<{ fields: Record<string, unknown> }>()
@@ -54,8 +55,14 @@ async function exportPdf(html: string): Promise<{ ok: boolean; path?: string; er
     webPreferences: { offscreen: true }
   })
 
+  // Loading the markup from a real file (rather than a multi-megabyte
+  // data: URL) is what makes large embedded images — e.g. an uploaded
+  // logo — reliably render in the exported PDF.
+  const tmpHtml = join(tmpdir(), `alwardi-letterhead-${Date.now()}.html`)
+
   try {
-    await pdfWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
+    await writeFile(tmpHtml, html, 'utf8')
+    await pdfWin.loadFile(tmpHtml)
     // Give web fonts / images a moment to settle before printing.
     await new Promise((r) => setTimeout(r, 350))
     const data = await pdfWin.webContents.printToPDF({
@@ -69,6 +76,7 @@ async function exportPdf(html: string): Promise<{ ok: boolean; path?: string; er
     return { ok: false, error: String(err) }
   } finally {
     pdfWin.destroy()
+    await unlink(tmpHtml).catch(() => undefined)
   }
 }
 

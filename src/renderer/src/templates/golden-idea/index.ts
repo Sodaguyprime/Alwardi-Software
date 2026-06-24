@@ -11,9 +11,14 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  VerticalAlign
+  VerticalAlign,
+  HorizontalPositionAlign,
+  HorizontalPositionRelativeFrom,
+  VerticalPositionAlign,
+  VerticalPositionRelativeFrom
 } from 'docx'
 import type { FieldValues, TemplateDefinition } from '../../types'
+import { ltrIsolate } from '../../types'
 import { GoldenIdeaPreview } from './preview'
 import thumbnail from './thumbnail.png'
 
@@ -54,29 +59,35 @@ function footerLine(fields: FieldValues): string {
   return parts.join(', ')
 }
 
-function buildHeader(fields: FieldValues): Header {
-  const mode = fields.languageMode ?? 'en'
-  const showAr = mode === 'ar' || mode === 'both'
-  const showEn = mode === 'en' || mode === 'both'
+function arabicFooterLine(fields: FieldValues): string {
+  const parts: string[] = []
+  if (fields.crAr) parts.push(`س.ت:${ltrIsolate(fields.crAr)}`)
+  if (fields.poBoxAr) parts.push(`ص.ب:${ltrIsolate(fields.poBoxAr)}`)
+  if (fields.postalCodeAr) parts.push(`ر.ب:${ltrIsolate(fields.postalCodeAr)}`)
+  if (fields.addressAr) parts.push(fields.addressAr)
+  if (fields.telAr) parts.push(`هاتف:${ltrIsolate(fields.telAr)}`)
+  if (fields.emailAr) parts.push(ltrIsolate(fields.emailAr))
+  return parts.join('، ')
+}
 
-  const nameParagraphs: Paragraph[] = []
-  if (showAr && fields.companyNameAr) {
-    nameParagraphs.push(
-      new Paragraph({
+function buildHeader(fields: FieldValues): Header {
+  const arFirst = (fields.order ?? 'ar') === 'ar'
+  const nameAr = fields.companyNameAr
+    ? new Paragraph({
         alignment: AlignmentType.CENTER,
         bidirectional: true,
         children: [new TextRun({ text: fields.companyNameAr, bold: true, size: 30, color: INK })]
       })
-    )
-  }
-  if (showEn && fields.companyNameEn) {
-    nameParagraphs.push(
-      new Paragraph({
+    : null
+  const nameEn = fields.companyNameEn
+    ? new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [new TextRun({ text: fields.companyNameEn, bold: true, size: 22, color: GOLD })]
       })
-    )
-  }
+    : null
+  const nameParagraphs: Paragraph[] = (arFirst ? [nameAr, nameEn] : [nameEn, nameAr]).filter(
+    (p): p is Paragraph => p !== null
+  )
 
   // Logo cell content
   const logoChildren: Paragraph[] = []
@@ -87,7 +98,6 @@ function buildHeader(fields: FieldValues): Header {
         children: [
           new ImageRun({
             data: decoded.bytes,
-            type: decoded.type,
             transformation: { width: 90, height: 64 }
           })
         ]
@@ -138,19 +148,58 @@ function buildHeader(fields: FieldValues): Header {
 }
 
 function buildFooter(fields: FieldValues): Footer {
+  const arFirst = (fields.order ?? 'ar') === 'ar'
   const line = footerLine(fields)
-  return new Footer({
-    children: [
-      goldBand(),
-      new Paragraph({
+  const lineAr = arabicFooterLine(fields)
+  const arPara = lineAr
+    ? new Paragraph({
+        alignment: AlignmentType.CENTER,
+        bidirectional: true,
+        children: [new TextRun({ text: lineAr, bold: true, size: 16, color: INK })]
+      })
+    : null
+  const enPara = line
+    ? new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [new TextRun({ text: line, bold: true, size: 16, color: INK })]
       })
-    ]
-  })
+    : null
+  const ordered = (arFirst ? [arPara, enPara] : [enPara, arPara]).filter(
+    (p): p is Paragraph => p !== null
+  )
+  return new Footer({ children: [goldBand(), ...ordered] })
+}
+
+/** A page-centred watermark image sitting behind the document text. */
+function buildWatermark(fields: FieldValues): Paragraph[] {
+  const decoded = fields.watermark ? dataUriToBytes(fields.watermark) : null
+  if (!decoded) return []
+  return [
+    new Paragraph({
+      children: [
+        new ImageRun({
+          data: decoded.bytes,
+          transformation: { width: 320, height: 320 },
+          floating: {
+            horizontalPosition: {
+              relative: HorizontalPositionRelativeFrom.PAGE,
+              align: HorizontalPositionAlign.CENTER
+            },
+            verticalPosition: {
+              relative: VerticalPositionRelativeFrom.PAGE,
+              align: VerticalPositionAlign.CENTER
+            },
+            behindDocument: true,
+            allowOverlap: true
+          }
+        })
+      ]
+    })
+  ]
 }
 
 export function generateDocx(fields: FieldValues): Document {
+  const body = [...buildWatermark(fields), new Paragraph({ text: '' })]
   return new Document({
     sections: [
       {
@@ -162,7 +211,7 @@ export function generateDocx(fields: FieldValues): Document {
         },
         headers: { default: buildHeader(fields) },
         footers: { default: buildFooter(fields) },
-        children: [new Paragraph({ text: '' })]
+        children: body
       }
     ]
   })
@@ -173,7 +222,17 @@ export const goldenIdeaTemplate: TemplateDefinition = {
   name: 'Golden Idea',
   thumbnail,
   pageSize: 'A4',
-  supportedFields: ['logo', 'companyName', 'cr', 'poBox', 'postalCode', 'address', 'tel', 'email'],
+  supportedFields: [
+    'logo',
+    'watermark',
+    'companyName',
+    'cr',
+    'poBox',
+    'postalCode',
+    'address',
+    'tel',
+    'email'
+  ],
   Preview: GoldenIdeaPreview,
   generateDocx
 }
