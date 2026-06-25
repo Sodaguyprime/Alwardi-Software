@@ -22,8 +22,13 @@ import { ltrIsolate } from '../../types'
 import { GoldenIdeaPreview } from './preview'
 import thumbnail from './thumbnail.png'
 
-const GOLD = 'F2C200'
-const INK = '111111'
+const GOLD_DEFAULT = 'F2C200'
+const INK_DEFAULT = '111111'
+
+/** Strip a leading `#` so a colour can be used in docx (which wants bare hex). */
+function hex(value: string | undefined, fallback: string): string {
+  return (value ?? '').replace(/^#/, '') || fallback
+}
 
 /** Decode a base64 data URI into the bytes docx's ImageRun expects. */
 function dataUriToBytes(uri: string): { bytes: Uint8Array; type: 'png' | 'jpg' } | null {
@@ -37,13 +42,13 @@ function dataUriToBytes(uri: string): { bytes: Uint8Array; type: 'png' | 'jpg' }
 }
 
 /** A full-width paragraph that renders as a solid gold band. */
-function goldBand(): Paragraph {
+function goldBand(gold: string): Paragraph {
   return new Paragraph({
     text: '',
-    shading: { fill: GOLD },
+    shading: { fill: gold },
     spacing: { before: 40, after: 120 },
     border: {
-      bottom: { style: BorderStyle.SINGLE, size: 18, color: GOLD }
+      bottom: { style: BorderStyle.SINGLE, size: 18, color: gold }
     }
   })
 }
@@ -72,17 +77,24 @@ function arabicFooterLine(fields: FieldValues): string {
 
 function buildHeader(fields: FieldValues): Header {
   const arFirst = (fields.order ?? 'ar') === 'ar'
+  const GOLD = hex(fields.colors?.primary, GOLD_DEFAULT)
+  const INK = hex(fields.colors?.ink, INK_DEFAULT)
+  const ns = fields.nameScale ?? 1
   const nameAr = fields.companyNameAr
     ? new Paragraph({
         alignment: AlignmentType.CENTER,
         bidirectional: true,
-        children: [new TextRun({ text: fields.companyNameAr, bold: true, size: 30, color: INK })]
+        children: [
+          new TextRun({ text: fields.companyNameAr, bold: true, size: Math.round(30 * ns), color: INK })
+        ]
       })
     : null
   const nameEn = fields.companyNameEn
     ? new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: fields.companyNameEn, bold: true, size: 22, color: GOLD })]
+        children: [
+          new TextRun({ text: fields.companyNameEn, bold: true, size: Math.round(22 * ns), color: GOLD })
+        ]
       })
     : null
   const nameParagraphs: Paragraph[] = (arFirst ? [nameAr, nameEn] : [nameEn, nameAr]).filter(
@@ -149,25 +161,28 @@ function buildHeader(fields: FieldValues): Header {
 
 function buildFooter(fields: FieldValues): Footer {
   const arFirst = (fields.order ?? 'ar') === 'ar'
+  const GOLD = hex(fields.colors?.primary, GOLD_DEFAULT)
+  const INK = hex(fields.colors?.ink, INK_DEFAULT)
+  const fsz = Math.round(16 * (fields.footerScale ?? 1))
   const line = footerLine(fields)
   const lineAr = arabicFooterLine(fields)
   const arPara = lineAr
     ? new Paragraph({
         alignment: AlignmentType.CENTER,
         bidirectional: true,
-        children: [new TextRun({ text: lineAr, bold: true, size: 16, color: INK })]
+        children: [new TextRun({ text: lineAr, bold: true, size: fsz, color: INK })]
       })
     : null
   const enPara = line
     ? new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: line, bold: true, size: 16, color: INK })]
+        children: [new TextRun({ text: line, bold: true, size: fsz, color: INK })]
       })
     : null
   const ordered = (arFirst ? [arPara, enPara] : [enPara, arPara]).filter(
     (p): p is Paragraph => p !== null
   )
-  return new Footer({ children: [goldBand(), ...ordered] })
+  return new Footer({ children: [goldBand(GOLD), ...ordered] })
 }
 
 /** A page-centred watermark image sitting behind the document text. */
@@ -222,6 +237,12 @@ export const goldenIdeaTemplate: TemplateDefinition = {
   name: 'Golden Idea',
   thumbnail,
   pageSize: 'A4',
+  colorRoles: [
+    { key: 'primary', label: 'Accent (gold)', default: '#F2C200' },
+    { key: 'secondary', label: 'Secondary (grey)', default: '#595959' },
+    { key: 'ink', label: 'Text', default: '#111111' }
+  ],
+  lineControl: { label: 'Divider line position', min: -60, max: 250 },
   supportedFields: [
     'logo',
     'watermark',

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { DEFAULT_EDITOR_STATE, toArabicDigits, toFieldValues } from './types'
+import { DEFAULT_EDITOR_STATE, resolveColors, toArabicDigits, toFieldValues } from './types'
 import type { ArabicFieldKey, EditorState, FieldKey, LangOrder } from './types'
 import { getTemplate } from './templates/registry'
 import TemplatePicker from './components/TemplatePicker'
@@ -33,6 +33,10 @@ function App(): React.JSX.Element {
             ...s.state,
             enabled: { ...DEFAULT_EDITOR_STATE.enabled, ...s.state.enabled },
             arEnabled: { ...DEFAULT_EDITOR_STATE.arEnabled, ...s.state.arEnabled },
+            nameScale: s.state.nameScale ?? DEFAULT_EDITOR_STATE.nameScale,
+            footerScale: s.state.footerScale ?? DEFAULT_EDITOR_STATE.footerScale,
+            lineOffset: s.state.lineOffset ?? DEFAULT_EDITOR_STATE.lineOffset,
+            colors: { ...DEFAULT_EDITOR_STATE.colors, ...s.state.colors },
             values: { ...DEFAULT_EDITOR_STATE.values, ...s.state.values }
           })
           if (s.templateId) setTemplateId(s.templateId)
@@ -54,7 +58,9 @@ function App(): React.JSX.Element {
   }, [state, templateId, loaded])
 
   const template = useMemo(() => getTemplate(templateId), [templateId])
-  const fields = useMemo(() => toFieldValues(state), [state])
+  const fields = useMemo(() => toFieldValues(state, template), [state, template])
+  // Effective colours for the current template (override ?? default), for the picker UI.
+  const colors = useMemo(() => resolveColors(template, state), [template, state])
 
   const handleToggle = (key: FieldKey, enabled: boolean): void =>
     setState((s) => ({ ...s, enabled: { ...s.enabled, [key]: enabled } }))
@@ -88,6 +94,31 @@ function App(): React.JSX.Element {
   const handleLangOrder = (order: LangOrder): void =>
     setState((s) => ({ ...s, langOrder: order }))
 
+  // Company-name font size, clamped to a sensible range.
+  const handleNameScale = (scale: number): void =>
+    setState((s) => ({ ...s, nameScale: Math.min(2, Math.max(0.6, Math.round(scale * 100) / 100)) }))
+
+  // Footer contact-line font size, clamped to a sensible range.
+  const handleFooterScale = (scale: number): void =>
+    setState((s) => ({ ...s, footerScale: Math.min(2, Math.max(0.6, Math.round(scale * 100) / 100)) }))
+
+  // Divider-line vertical offset (clamped by the template's lineControl).
+  const handleLineOffset = (offset: number): void =>
+    setState((s) => {
+      const lc = template.lineControl
+      const clamped = lc ? Math.min(lc.max, Math.max(lc.min, offset)) : offset
+      return { ...s, lineOffset: Math.round(clamped) }
+    })
+
+  // Set/clear a colour override for the current template.
+  const handleColor = (key: string, value: string | null): void =>
+    setState((s) => {
+      const current = { ...(s.colors[templateId] ?? {}) }
+      if (value === null) delete current[key]
+      else current[key] = value
+      return { ...s, colors: { ...s.colors, [templateId]: current } }
+    })
+
   const handleValue = <K extends keyof EditorState['values']>(
     key: K,
     value: EditorState['values'][K]
@@ -115,6 +146,16 @@ function App(): React.JSX.Element {
         <FieldPanel
           state={state}
           supportedFields={template.supportedFields}
+          colorRoles={template.colorRoles ?? []}
+          colors={colors}
+          onColor={handleColor}
+          nameScale={state.nameScale}
+          onNameScale={handleNameScale}
+          footerScale={state.footerScale}
+          onFooterScale={handleFooterScale}
+          lineControl={template.lineControl}
+          lineOffset={state.lineOffset}
+          onLineOffset={handleLineOffset}
           onToggle={handleToggle}
           onArToggle={handleArToggle}
           onLangOrder={handleLangOrder}

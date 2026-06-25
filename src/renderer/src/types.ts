@@ -23,6 +23,14 @@ export interface FieldValues {
   watermark?: string // base64 data URI, rendered centred behind the body
   /** Render order between the two languages. */
   order?: LangOrder
+  /** Resolved template colours keyed by ColorRole.key (`#rrggbb`). */
+  colors?: Record<string, string>
+  /** Multiplier applied to the company-name font size (1 = template default). */
+  nameScale?: number
+  /** Multiplier applied to the footer contact-line font size (1 = template default). */
+  footerScale?: number
+  /** Vertical px offset for the template's divider line (+ lowers, − lifts). */
+  lineOffset?: number
   companyNameEn?: string
   companyNameAr?: string
   cr?: string
@@ -47,6 +55,14 @@ export interface EditorState {
   arEnabled: Record<ArabicFieldKey, boolean>
   /** Which language is shown first across the letterhead. */
   langOrder: LangOrder
+  /** Company-name font-size multiplier (1 = template default). */
+  nameScale: number
+  /** Footer contact-line font-size multiplier (1 = template default). */
+  footerScale: number
+  /** Vertical px offset for the divider line (templates that have one). */
+  lineOffset: number
+  /** Per-template colour overrides: colors[templateId][roleKey] = '#rrggbb'. */
+  colors: Record<string, Record<string, string>>
   values: {
     logo: string
     watermark: string
@@ -68,14 +84,44 @@ export interface EditorState {
   }
 }
 
+/** A customizable colour exposed by a template (e.g. its brand/accent colour). */
+export interface ColorRole {
+  /** Stable key used to look the colour up in FieldValues.colors. */
+  key: string
+  /** Human label shown in the colour picker. */
+  label: string
+  /** Default value as a `#rrggbb` hex string. */
+  default: string
+}
+
 export interface TemplateDefinition {
   id: string
   name: string
   thumbnail: string
   pageSize: 'A4' | 'Letter'
   supportedFields: FieldKey[]
+  /** Colours the user is allowed to recolour for this template. */
+  colorRoles?: ColorRole[]
+  /** If set, the template has an adjustable divider line; shows a position control. */
+  lineControl?: { label: string; min: number; max: number }
   Preview: React.FC<{ fields: FieldValues }>
   generateDocx: (fields: FieldValues) => Document
+}
+
+/**
+ * Resolve the effective colours for a template: each role's saved override for
+ * this template, falling back to the role's default. Always returns `#rrggbb`.
+ */
+export function resolveColors(
+  template: TemplateDefinition,
+  state: EditorState
+): Record<string, string> {
+  const overrides = state.colors[template.id] ?? {}
+  const out: Record<string, string> = {}
+  for (const role of template.colorRoles ?? []) {
+    out[role.key] = overrides[role.key] ?? role.default
+  }
+  return out
 }
 
 /** Convert any Western digits in a string to Arabic-Indic numerals (٠-٩). */
@@ -116,6 +162,10 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
     email: false
   },
   langOrder: 'ar',
+  nameScale: 1,
+  footerScale: 1,
+  lineOffset: 0,
+  colors: {},
   values: {
     logo: '',
     watermark: '',
@@ -142,13 +192,17 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
  * Arabic values are only emitted when that field's Arabic toggle is on;
  * numeric fields auto-convert their digits to Arabic-Indic numerals.
  */
-export function toFieldValues(state: EditorState): FieldValues {
+export function toFieldValues(state: EditorState, template?: TemplateDefinition): FieldValues {
   const { enabled, arEnabled, values } = state
   const on = (k: FieldKey): boolean => enabled[k]
   const arOn = (k: ArabicFieldKey): boolean => enabled[k] && arEnabled[k]
 
   return {
     order: state.langOrder,
+    nameScale: state.nameScale,
+    footerScale: state.footerScale,
+    lineOffset: state.lineOffset,
+    colors: template ? resolveColors(template, state) : undefined,
     logo: on('logo') && values.logo ? values.logo : undefined,
     watermark: on('watermark') && values.watermark ? values.watermark : undefined,
 

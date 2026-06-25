@@ -2,9 +2,9 @@ import React from 'react'
 import { ltrIsolate } from '../../types'
 import type { FieldValues } from '../../types'
 
-const GOLD = '#F2C200'
-const GREY = '#595959'
-const INK = '#111111'
+export const GOLD = '#F2C200'
+export const GREY = '#595959'
+export const INK = '#111111'
 
 /** A single rotated square used in the corner decorations. */
 function Diamond({
@@ -67,31 +67,38 @@ function arabicFooter(fields: FieldValues): string {
 }
 
 export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
+  // Resolved (user-customizable) colours, falling back to the brand defaults.
+  const GOLD = fields.colors?.primary ?? '#F2C200'
+  const GREY = fields.colors?.secondary ?? '#595959'
+  const INK = fields.colors?.ink ?? '#111111'
+
   const footer = footerLine(fields)
   const footerAr = arabicFooter(fields)
   const arFirst = (fields.order ?? 'ar') === 'ar'
+  const ns = fields.nameScale ?? 1
+  const fs = fields.footerScale ?? 1
 
   const nameAr = fields.companyNameAr ? (
-    <div key="ar" dir="rtl" style={{ fontSize: 22, fontWeight: 700, color: INK, lineHeight: 1.3 }}>
+    <div key="ar" dir="rtl" style={{ fontSize: 22 * ns, fontWeight: 700, color: INK, lineHeight: 1.3 }}>
       {fields.companyNameAr}
     </div>
   ) : null
   const nameEn = fields.companyNameEn ? (
     <div
       key="en"
-      style={{ fontSize: 16, fontWeight: 800, color: GOLD, letterSpacing: 0.5, marginTop: 4 }}
+      style={{ fontSize: 16 * ns, fontWeight: 800, color: GOLD, letterSpacing: 0.5, marginTop: 4 }}
     >
       {fields.companyNameEn}
     </div>
   ) : null
 
   const footerArEl = footerAr ? (
-    <div key="ar" dir="rtl" style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.5 }}>
+    <div key="ar" dir="rtl" style={{ fontSize: 12 * fs, fontWeight: 700, color: INK, lineHeight: 1.5 }}>
       {footerAr}
     </div>
   ) : null
   const footerEnEl = footer ? (
-    <div key="en" style={{ fontSize: 11.5, fontWeight: 700, color: INK, letterSpacing: 0.2 }}>
+    <div key="en" style={{ fontSize: 11.5 * fs, fontWeight: 700, color: INK, letterSpacing: 0.2 }}>
       {footer}
     </div>
   ) : null
@@ -173,8 +180,17 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
         {arFirst ? [nameAr, nameEn] : [nameEn, nameAr]}
       </div>
 
-      {/* Divider line under the name — a single straight rule */}
-      <div style={{ position: 'absolute', top: 150, left: 200, width: 400, height: 4, background: INK }} />
+      {/* Divider line under the name — a single straight rule (position adjustable) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 150 + (fields.lineOffset ?? 0),
+          left: 200,
+          width: 400,
+          height: 4,
+          background: INK
+        }}
+      />
 
       {/* ---------- FOOTER DECORATIONS ---------- */}
       {/* Bottom-left diamond cluster */}

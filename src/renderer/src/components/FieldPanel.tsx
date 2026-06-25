@@ -1,10 +1,26 @@
 import React, { useRef } from 'react'
 import { toArabicDigits } from '../types'
-import type { ArabicFieldKey, EditorState, FieldKey, LangOrder } from '../types'
+import type { ArabicFieldKey, ColorRole, EditorState, FieldKey, LangOrder } from '../types'
 
 interface Props {
   state: EditorState
   supportedFields: FieldKey[]
+  /** Colours this template lets the user customise. */
+  colorRoles: ColorRole[]
+  /** Resolved current colour for each role key (`#rrggbb`). */
+  colors: Record<string, string>
+  /** Set a colour override (value) or reset it to the default (null). */
+  onColor: (key: string, value: string | null) => void
+  /** Current company-name font-size multiplier. */
+  nameScale: number
+  onNameScale: (scale: number) => void
+  /** Current footer contact-line font-size multiplier. */
+  footerScale: number
+  onFooterScale: (scale: number) => void
+  /** Divider-line control config (only present for templates that have a line). */
+  lineControl?: { label: string; min: number; max: number }
+  lineOffset: number
+  onLineOffset: (offset: number) => void
   onToggle: (key: FieldKey, enabled: boolean) => void
   onArToggle: (key: ArabicFieldKey, enabled: boolean) => void
   onLangOrder: (order: LangOrder) => void
@@ -44,6 +60,54 @@ function Toggle({
 
 const inputClass =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-goldDark focus:ring-1 focus:ring-goldDark'
+
+/** A −/%/+ stepper for a font-size multiplier (1 = 100%). */
+function ScaleStepper({
+  label,
+  value,
+  onChange
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+}): React.JSX.Element {
+  return (
+    <div className="mt-3">
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <div className="mt-1 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onChange(value - 0.1)}
+          className="h-7 w-7 rounded-md border border-slate-300 text-lg font-semibold leading-none text-slate-600 hover:bg-slate-50"
+          title="Smaller"
+        >
+          −
+        </button>
+        <div className="flex-1 text-center text-sm font-medium tabular-nums text-slate-600">
+          {Math.round(value * 100)}%
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(value + 0.1)}
+          className="h-7 w-7 rounded-md border border-slate-300 text-lg font-semibold leading-none text-slate-600 hover:bg-slate-50"
+          title="Larger"
+        >
+          +
+        </button>
+        {Math.round(value * 100) !== 100 && (
+          <button
+            type="button"
+            onClick={() => onChange(1)}
+            className="text-xs text-slate-400 hover:text-slate-600"
+            title="Reset to default"
+          >
+            ↺
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 /**
  * One labelled field: a master on/off toggle, the English input, and an
@@ -91,6 +155,16 @@ function Field({
 export const FieldPanel: React.FC<Props> = ({
   state,
   supportedFields,
+  colorRoles,
+  colors,
+  onColor,
+  nameScale,
+  onNameScale,
+  footerScale,
+  onFooterScale,
+  lineControl,
+  lineOffset,
+  onLineOffset,
   onToggle,
   onArToggle,
   onLangOrder,
@@ -154,6 +228,86 @@ export const FieldPanel: React.FC<Props> = ({
             ))}
           </div>
         </div>
+
+        <ScaleStepper label="Company name size" value={nameScale} onChange={onNameScale} />
+        <ScaleStepper label="Footer details size" value={footerScale} onChange={onFooterScale} />
+
+        {lineControl && (
+          <div className="mt-3">
+            <span className="text-xs font-medium text-slate-500">{lineControl.label}</span>
+            <div className="mt-1 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onLineOffset(lineOffset - 5)}
+                className="h-7 w-7 rounded-md border border-slate-300 text-lg font-semibold leading-none text-slate-600 hover:bg-slate-50"
+                title="Lift up"
+              >
+                ↑
+              </button>
+              <div className="flex-1 text-center text-sm font-medium tabular-nums text-slate-600">
+                {lineOffset > 0 ? `+${lineOffset}` : lineOffset} px
+              </div>
+              <button
+                type="button"
+                onClick={() => onLineOffset(lineOffset + 5)}
+                className="h-7 w-7 rounded-md border border-slate-300 text-lg font-semibold leading-none text-slate-600 hover:bg-slate-50"
+                title="Lower down"
+              >
+                ↓
+              </button>
+              {lineOffset !== 0 && (
+                <button
+                  type="button"
+                  onClick={() => onLineOffset(0)}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                  title="Reset to default"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {colorRoles.length > 0 && (
+          <div className="mt-3">
+            <span className="text-xs font-medium text-slate-500">Colors</span>
+            <div className="mt-1.5 flex flex-col gap-1.5">
+              {colorRoles.map((role) => {
+                const value = colors[role.key] ?? role.default
+                const changed = value.toLowerCase() !== role.default.toLowerCase()
+                return (
+                  <div key={role.key} className="flex items-center gap-2">
+                    <label
+                      className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-md border border-slate-300"
+                      style={{ background: value }}
+                      title={`Change ${role.label}`}
+                    >
+                      <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => onColor(role.key, e.target.value)}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                    </label>
+                    <span className="flex-1 text-xs text-slate-600">{role.label}</span>
+                    <span className="font-mono text-[10px] uppercase text-slate-400">{value}</span>
+                    {changed && (
+                      <button
+                        type="button"
+                        onClick={() => onColor(role.key, null)}
+                        className="text-xs text-slate-400 hover:text-slate-600"
+                        title="Reset to default"
+                      >
+                        ↺
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {has('logo') && (

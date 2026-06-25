@@ -21,47 +21,49 @@ const SERVICES: Service[] = [
 
 export const HomeMenu: React.FC<{ onOpen: (id: string) => void }> = ({ onOpen }) => {
   return (
-    <div className="flex h-full flex-col items-center overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-800 text-white">
-      <div className="flex flex-col items-center px-6 pt-16 pb-10 text-center">
-        <div className="flex h-32 w-32 items-center justify-center rounded-full bg-black/40 shadow-2xl ring-2 ring-gold/40">
-          <img src={logo} alt="Alwardi" className="h-28 w-28 object-contain" />
+    <div className="flex h-full flex-col items-center overflow-y-auto bg-black text-white">
+      <div className="flex flex-col items-center px-6 pt-12 pb-8 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
+          <img src={logo} alt="Alwardi" className="h-12 w-12 object-contain" />
         </div>
-        <h1 className="mt-6 text-3xl font-black tracking-tight">Alwardi Software</h1>
-        <p className="mt-2 max-w-md text-sm text-slate-300">
-          Your company document suite. Choose a service to get started.
+        <h1 className="mt-4 text-lg font-semibold tracking-tight">Alwardi Software</h1>
+        <p className="mt-1 max-w-md text-xs text-neutral-500">
+          Your company document suite.
         </p>
       </div>
 
-      <div className="grid w-full max-w-3xl grid-cols-1 gap-4 px-8 pb-16 sm:grid-cols-2">
+      <div className="flex w-full max-w-md flex-col gap-2 px-6 pb-12">
         {SERVICES.map((s) => (
           <button
             key={s.id}
             type="button"
             disabled={!s.available}
             onClick={() => s.available && onOpen(s.id)}
-            className={`group flex flex-col items-start rounded-2xl border p-6 text-left transition-all ${
+            className={`group flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
               s.available
-                ? 'border-gold/30 bg-white/5 hover:-translate-y-0.5 hover:border-gold hover:bg-white/10'
-                : 'cursor-not-allowed border-white/10 bg-white/5 opacity-50'
+                ? 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
+                : 'cursor-not-allowed border-white/5 bg-white/[0.02] opacity-50'
             }`}
           >
-            <span className="text-4xl">{s.icon}</span>
-            <span className="mt-4 text-lg font-bold">{s.name}</span>
-            <span className="mt-1 text-sm text-slate-300">{s.description}</span>
+            <span className="text-lg">{s.icon}</span>
+            <span className="flex flex-col">
+              <span className="text-sm font-medium">{s.name}</span>
+              <span className="text-xs text-neutral-500">{s.description}</span>
+            </span>
             <span
-              className={`mt-4 text-xs font-semibold uppercase tracking-wide ${
-                s.available ? 'text-gold' : 'text-slate-400'
+              className={`ml-auto text-xs ${
+                s.available ? 'text-neutral-400 group-hover:text-white' : 'text-neutral-600'
               }`}
             >
-              {s.available ? 'Open →' : 'Coming soon'}
+              {s.available ? '→' : 'Soon'}
             </span>
           </button>
         ))}
 
         {/* Placeholder slot hinting at future services */}
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 p-6 text-center text-slate-400">
-          <span className="text-3xl">＋</span>
-          <span className="mt-2 text-sm">More services coming soon</span>
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-4 py-3 text-neutral-600">
+          <span className="text-lg">＋</span>
+          <span className="text-xs">More services coming soon</span>
         </div>
       </div>
     </div>
