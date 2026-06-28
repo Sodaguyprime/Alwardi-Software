@@ -91,12 +91,33 @@ async function saveDocx(buffer: ArrayBuffer): Promise<{ ok: boolean; path?: stri
   return { ok: true, path: filePath }
 }
 
+/** Save a base64 PNG data URL (e.g. a generated QR code) to disk. */
+async function savePng(
+  dataUrl: string,
+  defaultName = 'qr-code.png'
+): Promise<{ ok: boolean; path?: string; error?: string }> {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Save PNG',
+    defaultPath: defaultName,
+    filters: [{ name: 'PNG Image', extensions: ['png'] }]
+  })
+  if (canceled || !filePath) return { ok: false }
+  try {
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+    await writeFile(filePath, Buffer.from(base64, 'base64'))
+    return { ok: true, path: filePath }
+  } catch (err) {
+    return { ok: false, error: String(err) }
+  }
+}
+
 app.whenReady().then(() => {
   ipcMain.handle('store:get', () => store.get('fields', null))
   ipcMain.handle('store:set', (_e, fields) => store.set('fields', fields))
   ipcMain.handle('store:clear', () => store.delete('fields'))
   ipcMain.handle('export:pdf', (_e, html: string) => exportPdf(html))
   ipcMain.handle('export:docx', (_e, buffer: ArrayBuffer) => saveDocx(buffer))
+  ipcMain.handle('export:png', (_e, dataUrl: string, name?: string) => savePng(dataUrl, name))
 
   createWindow()
 

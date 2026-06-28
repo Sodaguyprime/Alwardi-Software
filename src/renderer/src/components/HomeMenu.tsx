@@ -16,6 +16,20 @@ const SERVICES: Service[] = [
     description: 'Create branded company letterheads and export to PDF, DOCX, or print.',
     icon: '📄',
     available: true
+  },
+  {
+    id: 'qr-code',
+    name: 'QR Code Generator',
+    description: 'Turn any link or text into a downloadable QR code.',
+    icon: '🔳',
+    available: true
+  },
+  {
+    id: 'qr-logo',
+    name: 'QR Code with Logo',
+    description: 'Generate a QR code with your logo or PNG in the middle.',
+    icon: '🖼️',
+    available: true
   }
 ]
 

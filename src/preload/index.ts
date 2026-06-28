@@ -5,7 +5,8 @@ const api = {
   setFields: (fields: unknown) => ipcRenderer.invoke('store:set', fields),
   clearFields: () => ipcRenderer.invoke('store:clear'),
   exportPdf: (html: string) => ipcRenderer.invoke('export:pdf', html),
-  exportDocx: (buffer: ArrayBuffer) => ipcRenderer.invoke('export:docx', buffer)
+  exportDocx: (buffer: ArrayBuffer) => ipcRenderer.invoke('export:docx', buffer),
+  exportPng: (dataUrl: string, name?: string) => ipcRenderer.invoke('export:png', dataUrl, name)
 }
 
 contextBridge.exposeInMainWorld('api', api)

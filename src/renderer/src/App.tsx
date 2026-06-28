@@ -7,9 +7,10 @@ import FieldPanel from './components/FieldPanel'
 import PreviewPanel from './components/PreviewPanel'
 import ExportBar from './components/ExportBar'
 import HomeMenu from './components/HomeMenu'
+import QrGenerator from './components/QrGenerator'
 import { buildStandaloneHtml, exportDocx, printLetterhead } from './lib/exporters'
 
-type View = 'home' | 'letterhead'
+type View = 'home' | 'letterhead' | 'qr-code' | 'qr-logo'
 
 function App(): React.JSX.Element {
   const [view, setView] = useState<View>('home')
@@ -136,7 +137,11 @@ function App(): React.JSX.Element {
   }
 
   if (view === 'home') {
-    return <HomeMenu onOpen={(id) => id === 'letterhead' && setView('letterhead')} />
+    return <HomeMenu onOpen={(id) => setView(id as View)} />
+  }
+
+  if (view === 'qr-code' || view === 'qr-logo') {
+    return <QrGenerator withLogo={view === 'qr-logo'} onHome={() => setView('home')} />
   }
 
   return (
