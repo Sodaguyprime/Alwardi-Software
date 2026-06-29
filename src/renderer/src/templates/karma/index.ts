@@ -34,12 +34,13 @@ function buildHeader(fields: FieldValues): Header {
   const ns = fields.nameScale ?? 1
 
   const children: Paragraph[] = []
+  const ls = fields.logoScale ?? 1
   const decoded = fields.logo ? dataUriToBytes(fields.logo) : null
   if (decoded) {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new ImageRun({ data: decoded.bytes, transformation: { width: 120, height: 50 } })]
+        children: [new ImageRun({ data: decoded.bytes, transformation: { width: Math.round(120 * ls), height: Math.round(50 * ls) } })]
       })
     )
   }

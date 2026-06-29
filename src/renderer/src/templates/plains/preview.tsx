@@ -1,6 +1,7 @@
 import React from 'react'
 import type { FieldValues } from '../../types'
 import { arabicFooter, footerLine } from '../shared'
+import { useMovable } from '../layout'
 
 const PRIMARY_DEFAULT = '#2a9bd6'
 const INK_DEFAULT = '#1b1b1b'
@@ -19,10 +20,12 @@ function arrow(dir: 'left' | 'right'): string {
  * bars in the corners (recreates Templates/Template 3).
  */
 export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
+  const movable = useMovable(fields)
   const PRIMARY = fields.colors?.primary ?? PRIMARY_DEFAULT
   const INK = fields.colors?.ink ?? INK_DEFAULT
   const ns = fields.nameScale ?? 1
   const fs = fields.footerScale ?? 1
+  const ls = fields.logoScale ?? 1
 
   const footer = footerLine(fields)
   const footerAr = arabicFooter(fields)
@@ -79,7 +82,7 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
           running into the right-hand band. */}
       {fields.companyNameEn && (
         <div
-          style={{
+          {...movable('titleEn', {
             position: 'absolute',
             top: 34,
             left: 36,
@@ -95,7 +98,7 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
             letterSpacing: 0.5,
             lineHeight: 1.2,
             wordBreak: 'break-word'
-          }}
+          })}
         >
           {fields.companyNameEn}
         </div>
@@ -105,13 +108,13 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
           Anchored to the right edge with no fixed width, so the blue band grows
           leftward to fit the text instead of clipping it. */}
       <div
-        style={{
+        {...movable('titleAr', {
           position: 'absolute',
           top: 34,
           right: 36,
           display: 'flex',
           alignItems: 'stretch'
-        }}
+        })}
       >
         <div
           style={{
@@ -146,7 +149,7 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
       {/* ---------- LOGO (centred, just below the two title boxes) ---------- */}
       {fields.logo && (
         <div
-          style={{
+          {...movable('logo', {
             position: 'absolute',
             top: 108,
             left: 0,
@@ -154,19 +157,19 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
             display: 'flex',
             justifyContent: 'center',
             zIndex: 1
-          }}
+          })}
         >
           <img
             src={fields.logo}
             alt="logo"
-            style={{ maxHeight: 80, maxWidth: 220, objectFit: 'contain' }}
+            style={{ maxHeight: 80 * ls, maxWidth: 220 * ls, objectFit: 'contain' }}
           />
         </div>
       )}
 
       {/* ---------- BOTTOM CONTACT BAR (lifted up & nudged right) ---------- */}
       <div
-        style={{
+        {...movable('footer', {
           position: 'absolute',
           bottom: 30,
           left: 70,
@@ -174,7 +177,7 @@ export const PlainsPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => 
           minHeight: 48,
           display: 'flex',
           alignItems: 'stretch'
-        }}
+        })}
       >
         {/* English footer — blue, arrow-left edge */}
         <div

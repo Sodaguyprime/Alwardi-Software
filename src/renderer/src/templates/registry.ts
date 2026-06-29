@@ -2,6 +2,9 @@ import type { TemplateDefinition } from '../types'
 import goldenIdeaTemplate from './golden-idea'
 import karmaTemplate from './karma'
 import plainsTemplate from './plains'
+import sihoolTemplate from './sihool'
+import chevronTemplate from './chevron'
+import thamerTemplate from './thamer'
 
 /**
  * The single source of truth for available templates.
@@ -10,7 +13,10 @@ import plainsTemplate from './plains'
 export const templates: TemplateDefinition[] = [
   goldenIdeaTemplate,
   karmaTemplate,
-  plainsTemplate
+  plainsTemplate,
+  sihoolTemplate,
+  chevronTemplate,
+  thamerTemplate
 ]
 
 export function getTemplate(id: string): TemplateDefinition {

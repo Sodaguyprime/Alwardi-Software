@@ -16,6 +16,8 @@ export function buildStandaloneHtml(template: TemplateDefinition, fields: FieldV
 <meta charset="utf-8" />
 <style>
   @page { size: A4; margin: 0; }
+  /* Match the app's box model (Tailwind preflight) so preview === PDF output. */
+  *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 </style>

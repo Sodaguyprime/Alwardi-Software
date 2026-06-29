@@ -103,6 +103,7 @@ function buildHeader(fields: FieldValues): Header {
 
   // Logo cell content
   const logoChildren: Paragraph[] = []
+  const ls = fields.logoScale ?? 1
   const decoded = fields.logo ? dataUriToBytes(fields.logo) : null
   if (decoded) {
     logoChildren.push(
@@ -110,7 +111,7 @@ function buildHeader(fields: FieldValues): Header {
         children: [
           new ImageRun({
             data: decoded.bytes,
-            transformation: { width: 90, height: 64 }
+            transformation: { width: Math.round(90 * ls), height: Math.round(64 * ls) }
           })
         ]
       })

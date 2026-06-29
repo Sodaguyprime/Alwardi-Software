@@ -1,6 +1,7 @@
 import React from 'react'
 import type { FieldValues } from '../../types'
 import { arabicFooter, footerLine } from '../shared'
+import { useMovable } from '../layout'
 
 const PRIMARY_DEFAULT = '#1d5c8a'
 const ACCENT_DEFAULT = '#b02a2a'
@@ -11,6 +12,7 @@ const INK_DEFAULT = '#1a2733'
  * sweeping in from the top and bottom corners (recreates Templates/Template 2).
  */
 export const KarmaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
+  const movable = useMovable(fields)
   const PRIMARY = fields.colors?.primary ?? PRIMARY_DEFAULT
   const ACCENT = fields.colors?.accent ?? ACCENT_DEFAULT
   const INK = fields.colors?.ink ?? INK_DEFAULT
@@ -18,6 +20,7 @@ export const KarmaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
   const arFirst = (fields.order ?? 'ar') === 'ar'
   const ns = fields.nameScale ?? 1
   const fs = fields.footerScale ?? 1
+  const ls = fields.logoScale ?? 1
   const footer = footerLine(fields)
   const footerAr = arabicFooter(fields)
 
@@ -95,32 +98,32 @@ export const KarmaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
       {/* Logo (optional, centred above the name) */}
       {fields.logo && (
         <div
-          style={{
+          {...movable('logo', {
             position: 'absolute',
             top: 18,
             left: 0,
             width: 794,
             display: 'flex',
             justifyContent: 'center'
-          }}
+          })}
         >
           <img
             src={fields.logo}
             alt="logo"
-            style={{ maxHeight: 50, maxWidth: 180, objectFit: 'contain' }}
+            style={{ maxHeight: 50 * ls, maxWidth: 180 * ls, objectFit: 'contain' }}
           />
         </div>
       )}
 
       {/* Company name block */}
       <div
-        style={{
+        {...movable('title', {
           position: 'absolute',
           top: fields.logo ? 78 : 52,
           left: 147,
           width: 500,
           textAlign: 'center'
-        }}
+        })}
       >
         {arFirst ? [nameAr, nameEn] : [nameEn, nameAr]}
       </div>
@@ -140,13 +143,13 @@ export const KarmaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
 
       {/* Footer contact lines */}
       <div
-        style={{
+        {...movable('footer', {
           position: 'absolute',
           bottom: 28,
           left: 147,
           width: 500,
           textAlign: 'center'
-        }}
+        })}
       >
         {arFirst ? [footerArEl, footerEnEl] : [footerEnEl, footerArEl]}
       </div>

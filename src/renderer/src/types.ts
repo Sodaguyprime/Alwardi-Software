@@ -29,8 +29,16 @@ export interface FieldValues {
   nameScale?: number
   /** Multiplier applied to the footer contact-line font size (1 = template default). */
   footerScale?: number
+  /** Multiplier applied to the logo's size (1 = template default). */
+  logoScale?: number
   /** Vertical px offset for the template's divider line (+ lowers, − lifts). */
   lineOffset?: number
+  /**
+   * Free-layout drag offsets for the current template, keyed by element
+   * (e.g. 'logo', 'title', 'footer'). Applied on top of each element's default
+   * position so the user can nudge things around; honored by preview + PDF/print.
+   */
+  layout?: Record<string, { x: number; y: number }>
   companyNameEn?: string
   companyNameAr?: string
   cr?: string
@@ -59,8 +67,14 @@ export interface EditorState {
   nameScale: number
   /** Footer contact-line font-size multiplier (1 = template default). */
   footerScale: number
+  /** Logo size multiplier (1 = template default). */
+  logoScale: number
   /** Vertical px offset for the divider line (templates that have one). */
   lineOffset: number
+  /** Whether "Free move" (drag elements around) editing mode is active. */
+  freeLayout: boolean
+  /** Per-template drag offsets: layout[templateId][elementKey] = { x, y }. */
+  layout: Record<string, Record<string, { x: number; y: number }>>
   /** Per-template colour overrides: colors[templateId][roleKey] = '#rrggbb'. */
   colors: Record<string, Record<string, string>>
   values: {
@@ -164,7 +178,10 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   langOrder: 'ar',
   nameScale: 1,
   footerScale: 1,
+  logoScale: 1,
   lineOffset: 0,
+  freeLayout: false,
+  layout: {},
   colors: {},
   values: {
     logo: '',
@@ -201,7 +218,9 @@ export function toFieldValues(state: EditorState, template?: TemplateDefinition)
     order: state.langOrder,
     nameScale: state.nameScale,
     footerScale: state.footerScale,
+    logoScale: state.logoScale,
     lineOffset: state.lineOffset,
+    layout: template ? state.layout[template.id] : undefined,
     colors: template ? resolveColors(template, state) : undefined,
     logo: on('logo') && values.logo ? values.logo : undefined,
     watermark: on('watermark') && values.watermark ? values.watermark : undefined,

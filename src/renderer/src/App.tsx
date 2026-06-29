@@ -36,7 +36,10 @@ function App(): React.JSX.Element {
             arEnabled: { ...DEFAULT_EDITOR_STATE.arEnabled, ...s.state.arEnabled },
             nameScale: s.state.nameScale ?? DEFAULT_EDITOR_STATE.nameScale,
             footerScale: s.state.footerScale ?? DEFAULT_EDITOR_STATE.footerScale,
+            logoScale: s.state.logoScale ?? DEFAULT_EDITOR_STATE.logoScale,
             lineOffset: s.state.lineOffset ?? DEFAULT_EDITOR_STATE.lineOffset,
+            freeLayout: s.state.freeLayout ?? DEFAULT_EDITOR_STATE.freeLayout,
+            layout: { ...DEFAULT_EDITOR_STATE.layout, ...s.state.layout },
             colors: { ...DEFAULT_EDITOR_STATE.colors, ...s.state.colors },
             values: { ...DEFAULT_EDITOR_STATE.values, ...s.state.values }
           })
@@ -103,6 +106,10 @@ function App(): React.JSX.Element {
   const handleFooterScale = (scale: number): void =>
     setState((s) => ({ ...s, footerScale: Math.min(2, Math.max(0.6, Math.round(scale * 100) / 100)) }))
 
+  // Logo size, clamped to a sensible range.
+  const handleLogoScale = (scale: number): void =>
+    setState((s) => ({ ...s, logoScale: Math.min(3, Math.max(0.3, Math.round(scale * 100) / 100)) }))
+
   // Divider-line vertical offset (clamped by the template's lineControl).
   const handleLineOffset = (offset: number): void =>
     setState((s) => {
@@ -124,6 +131,25 @@ function App(): React.JSX.Element {
     key: K,
     value: EditorState['values'][K]
   ): void => setState((s) => ({ ...s, values: { ...s.values, [key]: value } }))
+
+  // Toggle "Free move" drag-editing mode on the preview.
+  const handleToggleFreeLayout = (): void =>
+    setState((s) => ({ ...s, freeLayout: !s.freeLayout }))
+
+  // Save a dragged element's offset for the current template.
+  const handleLayoutChange = (key: string, offset: { x: number; y: number }): void =>
+    setState((s) => ({
+      ...s,
+      layout: { ...s.layout, [templateId]: { ...(s.layout[templateId] ?? {}), [key]: offset } }
+    }))
+
+  // Clear all drag offsets for the current template.
+  const handleResetLayout = (): void =>
+    setState((s) => {
+      const next = { ...s.layout }
+      delete next[templateId]
+      return { ...s, layout: next }
+    })
 
   const handleReset = (): void => {
     setState(DEFAULT_EDITOR_STATE)
@@ -158,6 +184,8 @@ function App(): React.JSX.Element {
           onNameScale={handleNameScale}
           footerScale={state.footerScale}
           onFooterScale={handleFooterScale}
+          logoScale={state.logoScale}
+          onLogoScale={handleLogoScale}
           lineControl={template.lineControl}
           lineOffset={state.lineOffset}
           onLineOffset={handleLineOffset}
@@ -166,7 +194,15 @@ function App(): React.JSX.Element {
           onLangOrder={handleLangOrder}
           onValue={handleValue}
         />
-        <PreviewPanel template={template} fields={fields} />
+        <PreviewPanel
+          template={template}
+          fields={fields}
+          editLayout={state.freeLayout}
+          onToggleEditLayout={handleToggleFreeLayout}
+          onLayoutChange={handleLayoutChange}
+          hasLayout={Object.keys(state.layout[templateId] ?? {}).length > 0}
+          onResetLayout={handleResetLayout}
+        />
       </div>
       <ExportBar
         onExportDocx={async () => {

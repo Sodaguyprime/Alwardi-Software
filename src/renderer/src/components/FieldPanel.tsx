@@ -17,6 +17,9 @@ interface Props {
   /** Current footer contact-line font-size multiplier. */
   footerScale: number
   onFooterScale: (scale: number) => void
+  /** Current logo size multiplier. */
+  logoScale: number
+  onLogoScale: (scale: number) => void
   /** Divider-line control config (only present for templates that have a line). */
   lineControl?: { label: string; min: number; max: number }
   lineOffset: number
@@ -162,6 +165,8 @@ export const FieldPanel: React.FC<Props> = ({
   onNameScale,
   footerScale,
   onFooterScale,
+  logoScale,
+  onLogoScale,
   lineControl,
   lineOffset,
   onLineOffset,
@@ -205,6 +210,7 @@ export const FieldPanel: React.FC<Props> = ({
 
   return (
     <div className="flex h-full w-[380px] shrink-0 flex-col border-r border-slate-200 bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="border-b border-slate-200 px-5 py-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
           Letterhead Details
@@ -309,7 +315,7 @@ export const FieldPanel: React.FC<Props> = ({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="px-5 py-4">
         {has('logo') && (
           <Field label="Logo" enabled={state.enabled.logo} onToggle={(v) => onToggle('logo', v)}>
             <div className="flex items-center gap-2">
@@ -344,6 +350,37 @@ export const FieldPanel: React.FC<Props> = ({
                 onChange={(e) => readImage(e, 'logo')}
               />
             </div>
+            {state.values.logo && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Logo size</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium tabular-nums text-slate-500">
+                      {Math.round(logoScale * 100)}%
+                    </span>
+                    {Math.round(logoScale * 100) !== 100 && (
+                      <button
+                        type="button"
+                        onClick={() => onLogoScale(1)}
+                        className="text-xs text-slate-400 hover:text-slate-600"
+                        title="Reset to default"
+                      >
+                        ↺
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={0.3}
+                  max={3}
+                  step={0.05}
+                  value={logoScale}
+                  onChange={(e) => onLogoScale(Number(e.target.value))}
+                  className="mt-1.5 w-full accent-goldDark"
+                />
+              </div>
+            )}
           </Field>
         )}
 
@@ -542,6 +579,7 @@ export const FieldPanel: React.FC<Props> = ({
             />
           </Field>
         )}
+      </div>
       </div>
     </div>
   )

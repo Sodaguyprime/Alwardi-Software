@@ -1,6 +1,7 @@
 import React from 'react'
 import { ltrIsolate } from '../../types'
 import type { FieldValues } from '../../types'
+import { useMovable } from '../layout'
 
 export const GOLD = '#F2C200'
 export const GREY = '#595959'
@@ -67,6 +68,7 @@ function arabicFooter(fields: FieldValues): string {
 }
 
 export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields }) => {
+  const movable = useMovable(fields)
   // Resolved (user-customizable) colours, falling back to the brand defaults.
   const GOLD = fields.colors?.primary ?? '#F2C200'
   const GREY = fields.colors?.secondary ?? '#595959'
@@ -77,6 +79,7 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
   const arFirst = (fields.order ?? 'ar') === 'ar'
   const ns = fields.nameScale ?? 1
   const fs = fields.footerScale ?? 1
+  const ls = fields.logoScale ?? 1
 
   const nameAr = fields.companyNameAr ? (
     <div key="ar" dir="rtl" style={{ fontSize: 22 * ns, fontWeight: 700, color: INK, lineHeight: 1.3 }}>
@@ -148,16 +151,16 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
       {/* Logo (top-left) — only rendered when an image is provided */}
       {fields.logo && (
         <div
-          style={{
+          {...movable('logo', {
             position: 'absolute',
             top: 52,
             left: 36,
-            width: 120,
-            height: 86,
+            width: 120 * ls,
+            height: 86 * ls,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
-          }}
+          })}
         >
           <img
             src={fields.logo}
@@ -169,13 +172,13 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
 
       {/* Company name block */}
       <div
-        style={{
+        {...movable('title', {
           position: 'absolute',
           top: 56,
           left: 180,
           width: 430,
           textAlign: 'center'
-        }}
+        })}
       >
         {arFirst ? [nameAr, nameEn] : [nameEn, nameAr]}
       </div>
@@ -204,13 +207,13 @@ export const GoldenIdeaPreview: React.FC<{ fields: FieldValues }> = ({ fields })
 
       {/* Footer contact lines */}
       <div
-        style={{
+        {...movable('footer', {
           position: 'absolute',
           top: 1066,
           left: 60,
           width: 674,
           textAlign: 'center'
-        }}
+        })}
       >
         {arFirst ? [footerArEl, footerEnEl] : [footerEnEl, footerArEl]}
       </div>

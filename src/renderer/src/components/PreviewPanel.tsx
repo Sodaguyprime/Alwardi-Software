@@ -1,12 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { FieldValues, TemplateDefinition } from '../types'
+import { LayoutEditProvider, type LayoutOffset } from '../templates/layout'
 
 const A4_W = 794
 const A4_H = 1123
 
-export const PreviewPanel: React.FC<{ template: TemplateDefinition; fields: FieldValues }> = ({
+interface Props {
+  template: TemplateDefinition
+  fields: FieldValues
+  /** Whether "Free move" drag editing is active. */
+  editLayout: boolean
+  onToggleEditLayout: () => void
+  /** Persist a new drag offset for an element of the current template. */
+  onLayoutChange: (key: string, offset: LayoutOffset) => void
+  /** True when the current template has any saved drag offsets. */
+  hasLayout: boolean
+  onResetLayout: () => void
+}
+
+export const PreviewPanel: React.FC<Props> = ({
   template,
-  fields
+  fields,
+  editLayout,
+  onToggleEditLayout,
+  onLayoutChange,
+  hasLayout,
+  onResetLayout
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.6)
@@ -61,7 +80,36 @@ export const PreviewPanel: React.FC<{ template: TemplateDefinition; fields: Fiel
 
   const Preview = template.Preview
 
+  // The on-screen size of 1 letterhead px = the scale of whichever view is
+  // currently shown (fullscreen takes over when open). Kept in a ref so the
+  // drag handler always divides screen movement by the right factor.
+  const activeScale = fullscreen ? fsEffective : scale
+  const activeScaleRef = useRef(activeScale)
+  activeScaleRef.current = activeScale
+
+  const beginDrag = (key: string, e: React.PointerEvent): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startY = e.clientY
+    const base = fields.layout?.[key] ?? { x: 0, y: 0 }
+    const sc = activeScaleRef.current || 1
+    const onMove = (ev: PointerEvent): void => {
+      onLayoutChange(key, {
+        x: Math.round(base.x + (ev.clientX - startX) / sc),
+        y: Math.round(base.y + (ev.clientY - startY) / sc)
+      })
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   return (
+   <LayoutEditProvider value={{ enabled: editLayout, beginDrag }}>
     <div
       ref={containerRef}
       className="relative flex h-full flex-1 items-center justify-center overflow-auto bg-slate-100 p-8"
@@ -73,6 +121,39 @@ export const PreviewPanel: React.FC<{ template: TemplateDefinition; fields: Fiel
       >
         <span className="text-base leading-none">⛶</span> Fullscreen
       </button>
+
+      {/* Free-move (drag elements) toggle + reset */}
+      <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggleEditLayout}
+          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm ${
+            editLayout
+              ? 'border-goldDark bg-goldDark text-slate-900'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+          title="Drag the logo, titles and footer to reposition them"
+        >
+          <span className="text-base leading-none">✥</span>
+          {editLayout ? 'Free move: on' : 'Free move'}
+        </button>
+        {hasLayout && (
+          <button
+            type="button"
+            onClick={onResetLayout}
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"
+            title="Move everything back to its default position"
+          >
+            Reset positions
+          </button>
+        )}
+      </div>
+
+      {editLayout && (
+        <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-md bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
+          Drag the logo, titles or footer to reposition them
+        </div>
+      )}
 
       <div style={{ width: A4_W * scale, height: A4_H * scale, flexShrink: 0 }}>
         <div
@@ -158,6 +239,7 @@ export const PreviewPanel: React.FC<{ template: TemplateDefinition; fields: Fiel
         </div>
       )}
     </div>
+   </LayoutEditProvider>
   )
 }
 

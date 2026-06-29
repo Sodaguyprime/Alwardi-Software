@@ -72,13 +72,14 @@ function buildHeader(fields: FieldValues): Header {
   ]
 
   // Logo, centred just below the two title boxes.
+  const ls = fields.logoScale ?? 1
   const decoded = fields.logo ? dataUriToBytes(fields.logo) : null
   if (decoded) {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 120 },
-        children: [new ImageRun({ data: decoded.bytes, transformation: { width: 150, height: 60 } })]
+        children: [new ImageRun({ data: decoded.bytes, transformation: { width: Math.round(150 * ls), height: Math.round(60 * ls) } })]
       })
     )
   }
